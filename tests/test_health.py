@@ -1,7 +1,7 @@
 import pytest
 
-from tt_overlay.health import health_at_time
-from tt_overlay.styles import HealthStyle
+from vifu.health import health_at_time
+from vifu.styles import HealthStyle
 
 
 @pytest.fixture

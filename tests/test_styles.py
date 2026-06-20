@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from tt_overlay.styles import StyleConfig, load_style
+from vifu.styles import StyleConfig, load_style
 
 
 def test_load_arcade_fight_style() -> None:

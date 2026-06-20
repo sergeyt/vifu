@@ -1,20 +1,22 @@
-# Table Tennis Fight Overlay CLI — Plan
+# vifu — Plan
+
+**video fun**: local CLI for arcade-style sport competition videos.
 
 ## Goal
 
-Build a local-first CLI for macOS that turns short table-tennis clips into **Mortal Kombat-style fight videos**:
+Turn short sport clips (table tennis, boxing gym, any head-to-head footage) into **fun fight-style videos** where two or more players compete:
 
-- moving player names above each head;
-- top HUD with **reactive health bars** (drop on hits, slow refill between rallies);
+- moving player names above each head (planned);
+- top HUD with **reactive health bars** (smooth drain on rally hits);
 - fight intro (`ROUND 1` → `FIGHT!`);
-- SFX layer (bell, impacts) mixed with original audio;
+- SFX layer (bell by default; impacts opt-in);
 - YAML style presets;
 - fast iteration with **uv**.
 
 Target command:
 
 ```bash
-uv run tt-overlay process \
+uv run vifu process \
   --input samples/rally_15s.mp4 \
   --output outputs/rally_fight.mp4 \
   --player1 SERGEI \
@@ -77,7 +79,7 @@ health:
 ## Project Layout
 
 ```text
-tt-vid/
+vifu/
   plan.md
   pyproject.toml
   uv.lock
@@ -88,7 +90,7 @@ tt-vid/
   assets/sounds/.gitkeep
   assets/fonts/.gitkeep
   configs/styles/arcade_fight.yaml
-  src/tt_overlay/
+  src/vifu/
     __init__.py
     __main__.py
     cli.py
@@ -111,9 +113,9 @@ Prerequisites: [uv](https://docs.astral.sh/uv/) and FFmpeg.
 
 ```bash
 brew install ffmpeg
-cd tt-vid
+cd vifu
 uv sync                    # install deps from pyproject.toml
-uv run tt-overlay --help   # run CLI without activating a venv
+uv run vifu --help   # run CLI without activating a venv
 ```
 
 Add a dependency later:
@@ -126,7 +128,7 @@ Dev / test:
 
 ```bash
 uv run pytest
-uv run tt-overlay process --input samples/short_5s.mp4 ...
+uv run vifu process --input samples/short_5s.mp4 ...
 ```
 
 ---
@@ -155,7 +157,7 @@ Track status: `[ ]` todo · `[~]` in progress · `[x]` done
 
 | # | Milestone | Status | Acceptance |
 |---|---|---|---|
-| M1 | CLI skeleton | [x] | `uv run tt-overlay process --help` works |
+| M1 | CLI skeleton | [x] | `uv run vifu process --help` works |
 | M2 | Video read/write | [x] | Copy input → output MP4, same fps/size |
 | M3 | Style presets | [x] | Load `arcade_fight.yaml` via Pydantic |
 
@@ -250,7 +252,7 @@ Use royalty-free SFX only — do not ship copyrighted game audio.
 ## Definition of Done (MVP)
 
 ```bash
-uv run tt-overlay process \
+uv run vifu process \
   --input samples/rally_15s.mp4 \
   --output outputs/rally_fight.mp4 \
   --player1 SERGEI \
@@ -280,7 +282,7 @@ Output must have:
 Cursor rule of thumb:
 
 ```text
-Local Python CLI for MK-style table tennis overlays. uv + Typer + OpenCV + Ultralytics + FFmpeg. Working prototype over perfect architecture. One milestone per change.
+Local Python CLI for vifu (video fun) sport overlays. uv + Typer + OpenCV + Ultralytics + FFmpeg. Working prototype over perfect architecture. One milestone per change.
 ```
 
 ---

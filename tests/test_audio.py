@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from tt_overlay.audio import _write_placeholder_wav, ensure_default_sounds
-from tt_overlay.styles import StyleConfig, SfxStyle
+from vifu.audio import _write_placeholder_wav, ensure_default_sounds
+from vifu.styles import StyleConfig, SfxStyle
 
 
 def test_ensure_default_sounds_creates_intro_only(tmp_path: Path) -> None:

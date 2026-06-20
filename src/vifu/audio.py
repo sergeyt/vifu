@@ -9,7 +9,7 @@ from pathlib import Path
 import numpy as np
 from rich.console import Console
 
-from tt_overlay.styles import StyleConfig
+from vifu.styles import StyleConfig
 
 
 def ffmpeg_available() -> bool:

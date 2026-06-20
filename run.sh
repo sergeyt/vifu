@@ -45,7 +45,7 @@ STYLE="${STYLE:-$DEFAULT_STYLE}"
 mkdir -p "$(dirname "$OUTPUT")"
 
 args=(
-  tt-overlay process
+  vifu process
   --input "$INPUT"
   --output "$OUTPUT"
   --player1 "$PLAYER1"

@@ -6,12 +6,12 @@ from typing import Annotated, Optional
 import typer
 from rich.console import Console
 
-from tt_overlay.layout import PlayerLayout
-from tt_overlay.pipeline import ProcessOptions, process_video
+from vifu.layout import PlayerLayout
+from vifu.pipeline import ProcessOptions, process_video
 
 app = typer.Typer(
-    name="tt-overlay",
-    help="Add Mortal Kombat-style overlays to table tennis videos.",
+    name="vifu",
+    help="vifu — video fun: arcade overlays for sport and competition clips.",
     no_args_is_help=True,
 )
 console = Console()
@@ -19,7 +19,7 @@ console = Console()
 
 @app.callback()
 def main() -> None:
-    """Local CLI for fight-style table tennis video overlays."""
+    """Local CLI to make sport videos fun — HUD, health bars, fight intro, SFX."""
 
 
 def _resolve_path(path: Path) -> Path:

@@ -7,12 +7,12 @@ from pathlib import Path
 from rich.console import Console
 from rich.progress import BarColumn, Progress, TextColumn, TimeElapsedColumn
 
-from tt_overlay.audio import detect_hit_times, ffmpeg_available, mix_audio
-from tt_overlay.health import health_at_time
-from tt_overlay.layout import PlayerLayout
-from tt_overlay.overlay import draw_hud
-from tt_overlay.styles import StyleConfig, load_style
-from tt_overlay.video_io import VideoReader, VideoWriter, draw_frame_label
+from vifu.audio import detect_hit_times, ffmpeg_available, mix_audio
+from vifu.health import health_at_time
+from vifu.layout import PlayerLayout
+from vifu.overlay import draw_hud
+from vifu.styles import StyleConfig, load_style
+from vifu.video_io import VideoReader, VideoWriter, draw_frame_label
 
 
 @dataclass

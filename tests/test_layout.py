@@ -1,4 +1,4 @@
-from tt_overlay.layout import PlayerLayout
+from vifu.layout import PlayerLayout
 
 
 def test_layout_sort_key() -> None:

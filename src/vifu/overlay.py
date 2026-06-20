@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import cv2
 
-from tt_overlay.health import HealthSnapshot
-from tt_overlay.styles import StyleConfig
+from vifu.health import HealthSnapshot
+from vifu.styles import StyleConfig
 
 
 def draw_hud(

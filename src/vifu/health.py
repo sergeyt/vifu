@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from tt_overlay.styles import HealthStyle
+from vifu.styles import HealthStyle
 
 
 @dataclass(frozen=True)

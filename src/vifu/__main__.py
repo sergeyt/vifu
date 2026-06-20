@@ -1,4 +1,4 @@
-from tt_overlay.cli import app
+from vifu.cli import app
 
 if __name__ == "__main__":
     app()
