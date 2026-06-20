@@ -28,7 +28,25 @@ jobs:
       - name: setup flyctl
         uses: superfly/flyctl-actions/setup-flyctl@master
 
+      - name: verify fly app exists
+        run: |
+          APP=$(sed -n "s/^app = [\"'\'']\\([^\"'\'']*\\)[\"'\''].*/\\1/p" fly.toml | head -1)
+          if [ -z "$APP" ]; then
+            echo "::error::Could not read app name from fly.toml"
+            exit 1
+          fi
+          echo "APP=$APP" >> "$GITHUB_ENV"
+          if ! flyctl status --app "$APP" >/dev/null 2>&1; then
+            echo "::error::Fly app '$APP' not found for this token."
+            echo "Create it once locally, then re-run deploy:"
+            echo "  fly apps create $APP"
+            echo "  fly secrets set TELEGRAM_BOT_TOKEN=... -a $APP"
+            echo "  fly tokens create deploy -a $APP -x 999999h"
+            echo "Store the token in GitHub → Settings → Secrets → FLY_API_TOKEN"
+            exit 1
+          fi
+
       - name: deploy to fly.io
-        run: flyctl deploy --remote-only
+        run: flyctl deploy --remote-only --app "$APP"
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

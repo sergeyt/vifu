@@ -40,24 +40,33 @@ brew install flyctl   # or: curl -L https://fly.io/install.sh | sh
 fly auth login
 ```
 
-### 2. Create app (first time)
+### 2. Create app (first time — required before CI deploy)
 
-Edit `app = "vifu-bot"` in `fly.toml` if you want a different name, then:
+Edit `app = "vifu"` in `fly.toml` if you want a different name, then **once**:
 
 ```bash
-fly apps create vifu-bot   # skip if name taken — pick another and update fly.toml
+fly apps create vifu
+fly secrets set TELEGRAM_BOT_TOKEN="123456:ABC..." -a vifu
 ```
+
+GitHub Actions needs a **deploy token scoped to that app** (a generic account token is not enough):
+
+```bash
+fly tokens create deploy -a vifu -x 999999h
+```
+
+Copy the token → GitHub repo → **Settings → Secrets → Actions** → `FLY_API_TOKEN`.
 
 ### 3. Set secrets
 
 ```bash
-fly secrets set TELEGRAM_BOT_TOKEN="123456:ABC..."
+fly secrets set TELEGRAM_BOT_TOKEN="123456:ABC..." -a vifu
 ```
 
 Optional:
 
 ```bash
-fly secrets set MAX_VIDEO_MB=20
+fly secrets set MAX_VIDEO_MB=20 -a vifu
 ```
 
 `VIFU_ROOT=/app` is set in `fly.toml` (do not point at your laptop path).
@@ -73,14 +82,7 @@ fly logs
 
 **GitHub Actions (auto):** every push to `main` deploys after CI passes (see [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml)).
 
-One-time setup:
-
-```bash
-# create a deploy token (store output in GitHub → Settings → Secrets → FLY_API_TOKEN)
-fly tokens create deploy -x 999999h
-```
-
-Also set `TELEGRAM_BOT_TOKEN` on Fly (step 3) — that stays on Fly, not in GitHub.
+Requires the one-time setup in step 2 (`fly apps create` + deploy token with `-a vifu`).
 
 ### 5. Ops
 
