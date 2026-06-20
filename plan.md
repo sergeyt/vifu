@@ -305,3 +305,77 @@ Local Python CLI for vifu (video fun) sport overlays. uv + Typer + OpenCV + Ultr
 - Custom ball detector
 - Wan/Hunyuan intro clips
 - macOS app packaging
+
+---
+
+## Phase 5 — Telegram bot (monetization)
+
+Turn vifu into a **Telegram bot** so clubs and players can upload a clip and get a fight-style video back without installing Python locally.
+
+### Two models (pick one or both)
+
+| Model | How it works | Best for |
+|---|---|---|
+| **Donation / tip jar** | Free processing; optional “buy me a coffee” via Telegram Stars, Stripe link, or crypto | Building audience, clubs, hobby tournaments |
+| **Paid bot** | N free renders/month, then pay per clip or subscription (Telegram Stars / Stripe) | Regular creators, coaches, league admins |
+
+### MVP bot scope
+
+```text
+user sends video + player names (and optional layout)
+  -> bot queues job
+  -> worker runs vifu CLI on server
+  -> bot returns MP4 + preview thumbnail
+```
+
+**Commands / flow:**
+
+- `/start` — intro + pricing (free tier vs paid)
+- Send video → ask for `--player1`, `--player2` (inline buttons or reply)
+- Optional: preset styles (`arcade_fight`, …)
+- `/balance` — credits left (paid model)
+- `/donate` — tip link or Telegram Stars invoice
+
+### Milestones
+
+| # | Milestone | Notes |
+|---|---|---|
+| T1 | Bot skeleton | python-telegram-bot or aiogram; webhook or polling |
+| T2 | File upload + queue | Save to temp storage; max duration/size limits |
+| T3 | Worker | Call `vifu process` subprocess; same presets as CLI |
+| T4 | Donation flow | Telegram Stars and/or external tip link in `/donate` |
+| T5 | Paid credits | Simple DB (SQLite/Redis): user_id → credits; decrement per render |
+| T6 | Admin | Rate limits, ban, manual credit top-up |
+
+### Infra (lightweight)
+
+- **Bot process** — Telegram API only (small VPS or serverless)
+- **Worker** — 1× CPU box with ffmpeg + uv; scale workers if queue grows
+- **Storage** — temp uploads deleted after 24h; outputs sent then deleted
+- **Secrets** — bot token, payment provider keys in env (never in repo)
+
+### Pricing ideas (draft)
+
+- Free: 3 clips/month, watermark optional
+- Tip: any amount unlocks 1 extra clip or removes watermark
+- Pro: ~$5–10/mo or Telegram Stars subscription → unlimited short clips (&lt;30s)
+
+### Legal / ops checklist
+
+- [ ] Terms: user owns uploaded footage; no copyrighted music/SFX in defaults
+- [ ] Privacy: delete files after delivery; no training on user videos
+- [ ] Payment: Telegram Stars ToS; or Stripe for web invoice link
+- [ ] Abuse: max file size, duration cap, queue per user
+
+### Target command (worker, unchanged)
+
+```bash
+uv run vifu process \
+  --input /tmp/upload.mp4 \
+  --output /tmp/out.mp4 \
+  --player1 "$PLAYER1" \
+  --player2 "$PLAYER2" \
+  --style arcade_fight
+```
+
+CLI stays the engine; the bot is a thin wrapper + billing layer.
