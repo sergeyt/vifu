@@ -132,17 +132,19 @@ Leave `SENTRY_DSN` unset locally unless you want dev events in Sentry.
 
 ### Polling vs webhook on Fly
 
-| Mode | Config |
-|---|---|
-| **Polling** (default) | No `[http_service]` in `fly.toml`. Machine stays up; bot pulls from Telegram. |
-| **Webhook** | `fly secrets set BOT_PUBLIC_URL=https://<app>.fly.dev PORT=8787`, uncomment `[http_service]` in `fly.toml`, redeploy. Fly provides HTTPS automatically. |
+| Mode | Telegram | Fly `[http_service]` |
+|---|---|---|
+| **Polling** (default) | Bot pulls updates via `getUpdates` | **Yes** — `/health` on `:8787` keeps the machine alive (not for Telegram) |
+| **Webhook** | Telegram POSTs to your URL | Same port — `/webhook` + `/health` |
+
+Webhook optional: `fly secrets set BOT_PUBLIC_URL=https://vifu.fly.dev -a vifu`
 
 ### Cost & sizing
 
-- **Single machine:** `fly.toml` uses 1 shared CPU / 1 GB RAM. CI runs `fly scale count 1` after each deploy.
-- To drop a second machine now: `fly scale count 1 -a vifu`
-- **Render queue:** 1 clip rendering at a time, up to 3 jobs total (`MAX_CONCURRENT_RENDERS`, `MAX_RENDER_QUEUE` in `fly.toml`). Extra requests get a busy message.
-- Always-on polling **does not sleep** (no `[http_service]`). Check [Fly pricing](https://fly.io/docs/about/pricing/) — 1×1 GB is much cheaper than 2×2 GB.
+- **Single machine:** 1 shared CPU / 2 GB RAM (renders need headroom). CI runs `fly scale count 1` after deploy.
+- To drop a second machine: `fly scale count 1 -a vifu`
+- **Render queue:** 1 clip at a time, up to 3 jobs total. Extra requests get a busy message.
+- `[http_service]` uses `auto_stop_machines = "off"` so the bot stays up 24/7.
 
 ### Region
 

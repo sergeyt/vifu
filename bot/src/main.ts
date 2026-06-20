@@ -2,6 +2,7 @@ import "@/sentry.ts";
 import { webhookCallback } from "grammy";
 import { createBot } from "@/bot.ts";
 import { loadConfig, useWebhook, webhookUrl } from "@/config.ts";
+import { startHealthServer } from "@/health.ts";
 import { captureException, flushSentry } from "@/sentry.ts";
 
 addEventListener("unhandledrejection", (event) => {
@@ -18,6 +19,8 @@ try {
 
   if (!useWebhook(cfg)) {
     await bot.api.deleteWebhook({ drop_pending_updates: false });
+    // Fly needs something listening on internal_port for health checks + always-on.
+    startHealthServer(cfg.port);
     console.log("[bot] long-polling…");
     await bot.start({
       onStart: (info) =>
@@ -29,7 +32,7 @@ try {
     console.log(`[bot] webhook → ${url}`);
 
     const handle = webhookCallback(bot, "std/http");
-    Deno.serve({ port: cfg.port }, async (req) => {
+    Deno.serve({ port: cfg.port, hostname: "0.0.0.0" }, async (req) => {
       const path = new URL(req.url).pathname;
       if (req.method === "GET" && path === "/health") {
         return new Response("ok");

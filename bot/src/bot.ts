@@ -37,7 +37,7 @@ export function createBot(cfg: Config): Bot {
     cfg.maxRenderQueue,
   );
 
-  bot.catch((err) => {
+  bot.catch(async (err) => {
     console.error("[bot] error:", err.error);
     captureException(err.error, {
       handler: "grammy",
@@ -45,6 +45,13 @@ export function createBot(cfg: Config): Bot {
       user_id: err.ctx.from?.id,
       chat_id: err.ctx.chat?.id,
     });
+    try {
+      await err.ctx.reply(
+        "Something went wrong. Try /cancel and send your video again.",
+      );
+    } catch {
+      // chat may be gone
+    }
   });
 
   bot.use(async (ctx, next) => {
@@ -82,70 +89,19 @@ export function createBot(cfg: Config): Bot {
   });
 
   bot.on(["message:video", "message:document"], async (ctx) => {
-    const userId = ctx.from!.id;
-    const session = getSession(userId);
-
-    if (session.inputPath) {
-      await Deno.remove(session.inputPath).catch(() => {});
-    }
-
-    const fileId = ctx.message.video?.file_id ??
-      (ctx.message.document?.mime_type?.startsWith("video/")
-        ? ctx.message.document.file_id
-        : undefined);
-
-    if (!fileId) {
-      await ctx.reply("Please send a video file.");
-      return;
-    }
-
-    const file = await ctx.api.getFile(fileId);
-    const size = file.file_size ?? ctx.message.video?.file_size ??
-      ctx.message.document?.file_size ?? 0;
-    if (size > cfg.maxVideoBytes) {
-      await ctx.reply(
-        `Video too large (max ${cfg.maxVideoBytes / 1024 / 1024} MB).`,
-      );
-      return;
-    }
-
-    const captionNames = ctx.message.caption
-      ? parsePlayerNames(ctx.message.caption)
-      : null;
-
-    setSession(userId, { step: "downloading" });
-    await ctx.reply("📥 Downloading your video…");
-
-    const ext = file.file_path?.split(".").pop() ?? "mp4";
-    let inputPath: string;
     try {
-      inputPath = await downloadTelegramFile(
-        cfg.token,
-        file.file_path!,
-        userId,
-        ext,
-      );
+      await handleVideoUpload(ctx, cfg, renderQueue);
     } catch (error) {
-      resetSession(userId);
-      const message = error instanceof Error ? error.message : String(error);
-      await ctx.reply(`❌ Couldn't download the video:\n${message}`);
-      return;
-    }
-
-    if (captionNames) {
-      await startRender(ctx, cfg, renderQueue, userId, {
-        inputPath,
-        player1: captionNames.player1,
-        player2: captionNames.player2,
+      console.error("[video]", error);
+      captureException(error, {
+        handler: "video",
+        user_id: ctx.from?.id,
       });
-      return;
+      resetSession(ctx.from!.id);
+      await ctx.reply(
+        "❌ Couldn't process that video. Try /cancel and send again.",
+      ).catch(() => {});
     }
-
-    setSession(userId, { step: "await_player1", inputPath });
-    await ctx.reply(
-      "✅ Video saved!\n\n<b>Who is Player 1?</b> (shown on the left / top)\nSend a name — e.g. <code>ALEX</code>",
-      { parse_mode: "HTML" },
-    );
   });
 
   bot.on("message:text", async (ctx) => {
@@ -228,6 +184,77 @@ export function createBot(cfg: Config): Bot {
   });
 
   return bot;
+}
+
+async function handleVideoUpload(
+  ctx: Context,
+  cfg: Config,
+  renderQueue: RenderQueue,
+): Promise<void> {
+  const userId = ctx.from!.id;
+  const session = getSession(userId);
+
+  if (session.inputPath) {
+    await Deno.remove(session.inputPath).catch(() => {});
+  }
+
+  const fileId = ctx.message!.video?.file_id ??
+    (ctx.message!.document?.mime_type?.startsWith("video/")
+      ? ctx.message!.document.file_id
+      : undefined);
+
+  if (!fileId) {
+    await ctx.reply("Please send a video file.");
+    return;
+  }
+
+  const file = await ctx.api.getFile(fileId);
+  const size = file.file_size ?? ctx.message!.video?.file_size ??
+    ctx.message!.document?.file_size ?? 0;
+  if (size > cfg.maxVideoBytes) {
+    await ctx.reply(
+      `Video too large (max ${cfg.maxVideoBytes / 1024 / 1024} MB).`,
+    );
+    return;
+  }
+
+  const captionNames = ctx.message!.caption
+    ? parsePlayerNames(ctx.message!.caption)
+    : null;
+
+  setSession(userId, { step: "downloading" });
+  await ctx.reply("📥 Downloading your video…");
+
+  const ext = file.file_path?.split(".").pop() ?? "mp4";
+  let inputPath: string;
+  try {
+    inputPath = await downloadTelegramFile(
+      cfg.token,
+      file.file_path!,
+      userId,
+      ext,
+    );
+  } catch (error) {
+    resetSession(userId);
+    const message = error instanceof Error ? error.message : String(error);
+    await ctx.reply(`❌ Couldn't download the video:\n${message}`);
+    return;
+  }
+
+  if (captionNames) {
+    await startRender(ctx, cfg, renderQueue, userId, {
+      inputPath,
+      player1: captionNames.player1,
+      player2: captionNames.player2,
+    });
+    return;
+  }
+
+  setSession(userId, { step: "await_player1", inputPath });
+  await ctx.reply(
+    "✅ Video saved!\n\n<b>Who is Player 1?</b> (shown on the left / top)\nSend a name — e.g. <code>ALEX</code>",
+    { parse_mode: "HTML" },
+  );
 }
 
 async function startRender(

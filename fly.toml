@@ -1,8 +1,8 @@
 # vifu Telegram bot on Fly.io
 # Docs: https://fly.io/docs/reference/configuration/
 #
-# Single-machine polling bot. Scale stays at 1 via deploy workflow + fly scale count 1.
-# Webhook: set secrets BOT_PUBLIC_URL + PORT=8787, then uncomment [http_service] below.
+# Polling for Telegram + HTTP /health for Fly (keeps machine alive).
+# Webhook mode: set BOT_PUBLIC_URL secret — bot switches automatically.
 
 app = "vifu"
 primary_region = "iad"
@@ -15,29 +15,30 @@ primary_region = "iad"
   MAX_VIDEO_MB = "20"
   MAX_CONCURRENT_RENDERS = "1"
   MAX_RENDER_QUEUE = "3"
+  PORT = "8787"
 
 [deploy]
   strategy = "immediate"
 
-# One shared VM — enough for 1 render at a time (see render queue in bot).
 [[vm]]
   cpu_kind = "shared"
   cpus = 1
-  memory = "1gb"
+  memory = "2gb"
 
-# --- Webhook mode (optional) ---
-# fly secrets set BOT_PUBLIC_URL=https://vifu.fly.dev PORT=8787
-#
-# [http_service]
-#   internal_port = 8787
-#   force_https = true
-#   auto_stop_machines = "off"
-#   auto_start_machines = true
-#   min_machines_running = 1
-#
-#   [[http_service.checks]]
-#     grace_period = "30s"
-#     interval = "30s"
-#     method = "GET"
-#     path = "/health"
-#     timeout = "5s"
+# Required on Fly: health check keeps the machine running (polling still uses Telegram getUpdates).
+[http_service]
+  internal_port = 8787
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    grace_period = "20s"
+    interval = "15s"
+    method = "GET"
+    path = "/health"
+    timeout = "5s"
+
+# Webhook mode (optional — replaces polling; also needs BOT_PUBLIC_URL secret):
+# fly secrets set BOT_PUBLIC_URL=https://vifu.fly.dev -a vifu
