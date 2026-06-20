@@ -1,0 +1,13 @@
+# Copy to .envrc.local and customize (gitignored):
+#
+#   cp .envrc.local.example .envrc.local
+#   direnv allow
+#
+# Only uncomment what you want to override (run.sh defaults to samples/10s.mp4).
+
+# export INPUT=samples/10s.mp4
+# export OUTPUT=outputs/fight.mp4
+# export PLAYER1=TODYSHEV
+# export PLAYER2=MAX-AZ
+# export STYLE=arcade_fight
+# export LAYOUT=top-bottom

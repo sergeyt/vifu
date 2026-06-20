@@ -1,0 +1,35 @@
+name: arcade_fight
+smoothing_alpha: 0.35
+font_scale: 0.9
+font_thickness: 2
+title_padding_x: 14
+title_padding_y: 8
+title_offset_y: 38
+player1:
+  name_color_bgr: [255, 255, 255]
+  bar_color_bgr: [40, 40, 220]
+  subtitle: "PADDLE WARRIOR"
+player2:
+  name_color_bgr: [255, 255, 255]
+  bar_color_bgr: [40, 220, 80]
+  subtitle: "SPIN MASTER"
+hud:
+  enabled: true
+  round_text: "ROUND 1"
+  fight_text: "FIGHT!"
+  intro_seconds: 2.5
+  bar_height: 28
+  bar_margin: 24
+health:
+  start_percent: 100
+  winner_end_percent: 28
+  loser_end_percent: 0
+  drain_seconds: 0.35
+  refill_per_second: 0
+  flash_frames: 3
+sfx:
+  enabled: true
+  intro_enabled: true
+  hits_enabled: false
+  intro_sound: "assets/sounds/fight_bell.wav"
+  hit_sound: "assets/sounds/impact_01.wav"
