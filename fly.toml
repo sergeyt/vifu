@@ -1,0 +1,42 @@
+# vifu Telegram bot on Fly.io
+# Docs: https://fly.io/docs/reference/configuration/
+#
+# Polling mode (default): no [http_service] — the machine runs Dockerfile CMD 24/7.
+# Webhook mode: uncomment [http_service] + set secrets BOT_PUBLIC_URL and PORT.
+
+app = "vifu-bot"
+primary_region = "ams"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  VIFU_ROOT = "/app"
+  MAX_VIDEO_MB = "20"
+
+[deploy]
+  strategy = "immediate"
+
+# OpenCV + ffmpeg peaks; bump memory if renders OOM.
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 2
+  memory = "2gb"
+
+# --- Webhook mode (optional) ---
+# 1. fly secrets set TELEGRAM_BOT_TOKEN=... BOT_PUBLIC_URL=https://vifu-bot.fly.dev PORT=8787
+# 2. Uncomment below, then fly deploy
+#
+# [http_service]
+#   internal_port = 8787
+#   force_https = true
+#   auto_stop_machines = "off"
+#   auto_start_machines = true
+#   min_machines_running = 1
+#
+#   [[http_service.checks]]
+#     grace_period = "30s"
+#     interval = "30s"
+#     method = "GET"
+#     path = "/health"
+#     timeout = "5s"

@@ -1,6 +1,8 @@
 .venv
 .git
+.github
 .pytest_cache
+tests
 outputs
 samples
 bot/tmp
@@ -8,3 +10,10 @@ bot/.env
 **/__pycache__
 *.pt
 .DS_Store
+plan.md
+README.md
+run.sh
+.envrc
+.envrc.local.example
+docker-compose.yml
+fly.toml
