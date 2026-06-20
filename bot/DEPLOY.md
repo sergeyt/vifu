@@ -71,13 +71,24 @@ fly deploy
 fly logs
 ```
 
+**GitHub Actions (auto):** every push to `main` deploys after CI passes (see [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml)).
+
+One-time setup:
+
+```bash
+# create a deploy token (store output in GitHub → Settings → Secrets → FLY_API_TOKEN)
+fly tokens create deploy -x 999999h
+```
+
+Also set `TELEGRAM_BOT_TOKEN` on Fly (step 3) — that stays on Fly, not in GitHub.
+
 ### 5. Ops
 
 ```bash
 fly status
 fly ssh console          # shell inside the VM
 fly secrets list
-fly deploy               # after git pull
+fly deploy               # manual deploy (CI auto-deploys on push to main)
 ```
 
 ### Polling vs webhook on Fly
