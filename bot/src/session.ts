@@ -1,8 +1,13 @@
-export type SessionStep = "idle" | "await_names";
+export type SessionStep =
+  | "idle"
+  | "downloading"
+  | "await_player1"
+  | "await_player2";
 
 export type UserSession = {
   step: SessionStep;
   inputPath?: string;
+  player1?: string;
 };
 
 const sessions = new Map<number, UserSession>();
