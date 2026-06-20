@@ -14,7 +14,9 @@ I'll add fight HUD, health bars, and the bell — keeping your clip's natural hi
 /cancel — reset
 /help — tips`;
 
-const HELP = `1. Send a rally clip (≤ ${Deno.env.get("MAX_VIDEO_MB") ?? "20"} MB)
+const HELP = `1. Send a rally clip (≤ ${
+  Deno.env.get("MAX_VIDEO_MB") ?? "20"
+} MB)
 2. Reply: <code>PLAYER1 vs PLAYER2</code>
 3. Wait ~30s–2min depending on length
 
@@ -69,14 +71,21 @@ export function createBot(cfg: Config): Bot {
     const file = await ctx.getFile();
     const size = file.file_size ?? 0;
     if (size > cfg.maxVideoBytes) {
-      await ctx.reply(`Video too large (max ${cfg.maxVideoBytes / 1024 / 1024} MB).`);
+      await ctx.reply(
+        `Video too large (max ${cfg.maxVideoBytes / 1024 / 1024} MB).`,
+      );
       return;
     }
 
     await ctx.reply("📥 Downloading…");
 
     const ext = file.file_path?.split(".").pop() ?? "mp4";
-    const inputPath = await downloadTelegramFile(cfg.token, file.file_path!, userId, ext);
+    const inputPath = await downloadTelegramFile(
+      cfg.token,
+      file.file_path!,
+      userId,
+      ext,
+    );
 
     setSession(userId, { step: "await_names", inputPath });
     await ctx.reply(

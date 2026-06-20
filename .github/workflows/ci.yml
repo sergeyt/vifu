@@ -1,0 +1,73 @@
+name: build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v4
+
+      - name: setup uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: setup python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: ".python-version"
+
+      - name: install deps
+        run: uv sync --frozen --extra dev --extra audio
+
+      - name: test
+        run: uv run pytest
+
+      - name: cli smoke
+        run: uv run vifu --help
+
+  bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: bot
+
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v4
+
+      - name: setup deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: fmt
+        run: deno fmt --check src/
+
+      - name: lint
+        run: deno lint src/
+
+      - name: typecheck
+        run: deno check --allow-import --lock=deno.lock src/main.ts
+
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v4
+
+      - name: build image
+        run: docker build -t vifu-bot .

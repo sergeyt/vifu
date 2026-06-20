@@ -5,7 +5,9 @@
   "tasks": {
     "dev": "deno run --watch --allow-env --allow-net --allow-read --allow-write --allow-run --allow-sys --allow-import --env-file=.env src/main.ts",
     "start": "deno run --allow-env --allow-net --allow-read --allow-write --allow-run --allow-sys --allow-import --env-file=.env src/main.ts",
-    "check": "deno check --allow-import src/main.ts"
+    "fmt": "deno fmt src/",
+    "lint": "deno lint src/",
+    "check": "deno check --allow-import --lock=deno.lock src/main.ts"
   },
   "imports": {
     "grammy": "https://deno.land/x/grammy@v1.35.0/mod.ts",
@@ -13,6 +15,11 @@
     "@/": "./src/"
   },
   "fmt": {
-    "exclude": ["tmp/"]
+    "exclude": ["tmp/", "*.md"]
+  },
+  "lint": {
+    "rules": {
+      "tags": ["recommended"]
+    }
   }
 }

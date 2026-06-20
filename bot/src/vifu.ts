@@ -55,7 +55,9 @@ export async function renderVifu(
   return { outputPath: opts.outputPath };
 }
 
-export function parsePlayerNames(text: string): { player1: string; player2: string } | null {
+export function parsePlayerNames(
+  text: string,
+): { player1: string; player2: string } | null {
   const trimmed = text.trim();
   if (!trimmed) return null;
 
