@@ -18,6 +18,8 @@ jobs:
     if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
     steps:
       - name: checkout code
@@ -28,7 +30,7 @@ jobs:
       - name: setup flyctl
         uses: superfly/flyctl-actions/setup-flyctl@master
 
-      - name: verify fly app exists
+      - name: read app name
         run: |
           APP=$(sed -n "s/^app = [\"'\'']\\([^\"'\'']*\\)[\"'\''].*/\\1/p" fly.toml | head -1)
           if [ -z "$APP" ]; then
@@ -36,19 +38,13 @@ jobs:
             exit 1
           fi
           echo "APP=$APP" >> "$GITHUB_ENV"
-          if ! flyctl status --app "$APP" >/dev/null 2>&1; then
-            echo "::error::Fly app '$APP' not found for this token."
-            echo "Create it once locally, then re-run deploy:"
-            echo "  fly apps create $APP"
-            echo "  fly secrets set TELEGRAM_BOT_TOKEN=... -a $APP"
-            echo "  fly tokens create deploy -a $APP -x 999999h"
-            echo "Store the token in GitHub → Settings → Secrets → FLY_API_TOKEN"
-            exit 1
-          fi
+          echo "Deploying app: $APP"
 
       - name: deploy to fly.io
         run: |
+          if [ -z "$FLY_API_TOKEN" ]; then
+            echo "::error::FLY_API_TOKEN secret is missing in GitHub repo settings"
+            exit 1
+          fi
           flyctl deploy --remote-only --app "$APP"
           flyctl scale count 1 --app "$APP" --yes
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

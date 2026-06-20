@@ -57,6 +57,11 @@ fly tokens create deploy -a vifu -x 999999h
 
 Copy the token → GitHub repo → **Settings → Secrets → Actions** → `FLY_API_TOKEN`.
 
+Important:
+- Copy the **entire** token output, including the `FlyV1` prefix and space.
+- Token must be scoped to this app: `fly tokens create deploy -a vifu …`
+- If deploy fails with "app not found", the token is likely from a different Fly account or wrong app name.
+
 ### 3. Set secrets
 
 ```bash
