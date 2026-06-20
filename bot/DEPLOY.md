@@ -29,6 +29,76 @@ Video rendering is **CPU-heavy** and runs **subprocesses** — use a **VPS or Do
 
 ---
 
+## Option D — Fly.io (managed Docker)
+
+Repo includes [`fly.toml`](../fly.toml) at the project root. **Polling by default** — no public URL or TLS setup.
+
+### 1. Install CLI & log in
+
+```bash
+brew install flyctl   # or: curl -L https://fly.io/install.sh | sh
+fly auth login
+```
+
+### 2. Create app (first time)
+
+Edit `app = "vifu-bot"` in `fly.toml` if you want a different name, then:
+
+```bash
+fly apps create vifu-bot   # skip if name taken — pick another and update fly.toml
+```
+
+### 3. Set secrets
+
+```bash
+fly secrets set TELEGRAM_BOT_TOKEN="123456:ABC..."
+```
+
+Optional:
+
+```bash
+fly secrets set MAX_VIDEO_MB=20
+```
+
+`VIFU_ROOT=/app` is set in `fly.toml` (do not point at your laptop path).
+
+### 4. Deploy
+
+From repo root:
+
+```bash
+fly deploy
+fly logs
+```
+
+### 5. Ops
+
+```bash
+fly status
+fly ssh console          # shell inside the VM
+fly secrets list
+fly deploy               # after git pull
+```
+
+### Polling vs webhook on Fly
+
+| Mode | Config |
+|---|---|
+| **Polling** (default) | No `[http_service]` in `fly.toml`. Machine stays up; bot pulls from Telegram. |
+| **Webhook** | `fly secrets set BOT_PUBLIC_URL=https://<app>.fly.dev PORT=8787`, uncomment `[http_service]` in `fly.toml`, redeploy. Fly provides HTTPS automatically. |
+
+### Cost & sizing
+
+- Default VM: **2 shared CPUs, 2 GB RAM** — enough for OpenCV/ffmpeg renders.
+- Always-on polling **does not sleep** (no `[http_service]` auto-stop). Expect roughly **~$10–15/mo** depending on region; check [Fly pricing](https://fly.io/docs/about/pricing/).
+- To cut cost, try `cpus = 1` and `memory = "1gb"` in `fly.toml` — may OOM on heavy clips.
+
+### Region
+
+Change `primary_region` in `fly.toml` (e.g. `iad`, `sin`, `fra`) before first deploy. Pick one close to you.
+
+---
+
 ## Option A — Docker (recommended)
 
 ### 1. Build
@@ -172,6 +242,6 @@ MAX_VIDEO_MB=20
 
 ```text
 Free 24/7 bot        →  Oracle + docker compose
-Easiest managed      →  Fly.io docker (watch usage)
+Easiest managed      →  Fly.io (see Option D)
 Last resort          →  Mac + deno task dev (polling, must stay on)
 ```
