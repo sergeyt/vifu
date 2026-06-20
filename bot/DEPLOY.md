@@ -90,14 +90,45 @@ fly logs
 
 Requires the one-time setup in step 2 (`fly apps create` + deploy token with `-a vifu`).
 
-### 5. Ops
+### 5. Ops & logs
 
 ```bash
-fly status
-fly ssh console          # shell inside the VM
-fly secrets list
-fly deploy               # manual deploy (CI auto-deploys on push to main)
+fly status -a vifu
+fly logs -a vifu              # live tail (Ctrl+C to stop)
+fly logs -a vifu --no-tail    # dump recent lines and exit
+fly machine list -a vifu      # running/stopped machines
+fly ssh console -a vifu       # shell inside the VM
+fly secrets list -a vifu
+fly deploy -a vifu              # manual deploy (CI auto-deploys on push to main)
 ```
+
+**Bot broken?** Start with:
+
+```bash
+fly status -a vifu
+fly logs -a vifu --no-tail
+```
+
+Look for `[bot]`, `[render]`, `[sentry]`, or crash/OOM lines. Common issues:
+- Machine stopped → `fly machine list` then `fly scale count 1 -a vifu`
+- Missing secret → `TELEGRAM_BOT_TOKEN` not set
+- OOM on render → bump memory in `fly.toml` or shorten clips
+
+Dashboard: [fly.io/apps/vifu/monitoring](https://fly.io/apps/vifu/monitoring)
+
+### Sentry (optional)
+
+1. Create a project at [sentry.io](https://sentry.io) → **Deno** platform.
+2. Set the DSN on Fly:
+
+```bash
+fly secrets set SENTRY_DSN="https://...@....ingest.sentry.io/..." -a vifu
+fly secrets set SENTRY_ENVIRONMENT=production -a vifu   # optional
+```
+
+3. Redeploy. Uncaught errors, grammY handler failures, and render failures are reported automatically.
+
+Leave `SENTRY_DSN` unset locally unless you want dev events in Sentry.
 
 ### Polling vs webhook on Fly
 
@@ -245,6 +276,7 @@ TELEGRAM_BOT_TOKEN=123456:ABC...
 VIFU_ROOT=/app          # inside Docker
 MAX_VIDEO_MB=20
 # ADMIN_CHAT_ID=123456789  # optional — DM you when someone new uses the bot
+# SENTRY_DSN=              # optional — Sentry error reporting
 # BOT_PUBLIC_URL=       # unset = polling
 ```
 

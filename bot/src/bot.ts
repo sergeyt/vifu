@@ -2,6 +2,7 @@ import { Bot, type Context, InputFile } from "grammy";
 import { markUserSeen, notifyNewUser } from "@/admin.ts";
 import type { Config } from "@/config.ts";
 import { queueWaitMessage, RenderQueue } from "@/queue.ts";
+import { captureException } from "@/sentry.ts";
 import { getSession, resetSession, setSession } from "@/session.ts";
 import { parsePlayerNames, renderVifu } from "@/vifu.ts";
 
@@ -38,6 +39,12 @@ export function createBot(cfg: Config): Bot {
 
   bot.catch((err) => {
     console.error("[bot] error:", err.error);
+    captureException(err.error, {
+      handler: "grammy",
+      update_id: err.ctx.update.update_id,
+      user_id: err.ctx.from?.id,
+      chat_id: err.ctx.chat?.id,
+    });
   });
 
   bot.use(async (ctx, next) => {
@@ -300,6 +307,12 @@ async function startRender(
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("[render]", message);
+    captureException(error instanceof Error ? error : new Error(message), {
+      handler: "render",
+      user_id: userId,
+      player1: opts.player1,
+      player2: opts.player2,
+    });
     if (statusMessageId !== undefined) {
       await ctx.api.editMessageText(
         ctx.chat.id,

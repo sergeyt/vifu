@@ -12,6 +12,7 @@
   "imports": {
     "grammy": "https://deno.land/x/grammy@v1.35.0/mod.ts",
     "grammy/types": "https://deno.land/x/grammy@v1.35.0/types.ts",
+    "@sentry/deno": "npm:@sentry/deno@10",
     "@/": "./src/"
   },
   "fmt": {
