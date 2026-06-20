@@ -1,0 +1,10 @@
+services:
+  vifu-bot:
+    build: .
+    restart: unless-stopped
+    env_file: bot/.env
+    environment:
+      VIFU_ROOT: /app
+    # Uncomment for webhook mode (requires HTTPS reverse proxy on :8787):
+    # ports:
+    #   - "8787:8787"

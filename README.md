@@ -115,3 +115,16 @@ uv run vifu process \
 ```
 
 `--layout` matches detected people to `--player1` / `--player2` (default: `left-right`).
+
+## Telegram bot
+
+Simple Deno bot in [`bot/`](bot/): send video → `PLAYER1 vs PLAYER2` → get fight clip.
+
+```bash
+cd bot && cp .env.example .env   # TELEGRAM_BOT_TOKEN
+deno task dev
+```
+
+See [bot/README.md](bot/README.md).
+
+Roadmap: [plan.md](plan.md).

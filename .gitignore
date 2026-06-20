@@ -12,6 +12,10 @@ outputs/*
 samples/*
 !samples/.gitkeep
 
+# bot
+bot/tmp/
+bot/.env
+
 # YOLO weights cache
 *.pt
 runs/

@@ -340,9 +340,9 @@ user sends video + player names (and optional layout)
 
 | # | Milestone | Notes |
 |---|---|---|
-| T1 | Bot skeleton | python-telegram-bot or aiogram; webhook or polling |
-| T2 | File upload + queue | Save to temp storage; max duration/size limits |
-| T3 | Worker | Call `vifu process` subprocess; same presets as CLI |
+| T1 | Bot skeleton | [x] | Deno + grammY; `/start`, polling/webhook |
+| T2 | File upload + queue | [x] | Video download → temp file |
+| T3 | Worker | [x] | `uv run vifu process` subprocess |
 | T4 | Donation flow | Telegram Stars and/or external tip link in `/donate` |
 | T5 | Paid credits | Simple DB (SQLite/Redis): user_id → credits; decrement per render |
 | T6 | Admin | Rate limits, ban, manual credit top-up |
