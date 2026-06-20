@@ -2,6 +2,9 @@ export type Config = {
   token: string;
   vifuRoot: string;
   maxVideoBytes: number;
+  maxConcurrentRenders: number;
+  maxRenderQueue: number;
+  adminChatId?: number;
   publicUrl?: string;
   port: number;
 };
@@ -18,11 +21,28 @@ export function loadConfig(): Config {
   const maxMb = Number(Deno.env.get("MAX_VIDEO_MB") ?? "20");
   const port = Number(Deno.env.get("PORT") ?? "8787");
   const publicUrl = Deno.env.get("BOT_PUBLIC_URL")?.trim() || undefined;
+  const maxConcurrentRenders = Math.max(
+    1,
+    Number(Deno.env.get("MAX_CONCURRENT_RENDERS") ?? "1"),
+  );
+  const maxRenderQueue = Math.max(
+    maxConcurrentRenders,
+    Number(Deno.env.get("MAX_RENDER_QUEUE") ?? "3"),
+  );
+  const adminRaw = Deno.env.get("ADMIN_CHAT_ID")?.trim();
+  const adminChatId = adminRaw ? Number(adminRaw) : undefined;
+  if (adminRaw && !Number.isFinite(adminChatId)) {
+    console.error("ADMIN_CHAT_ID must be a numeric Telegram chat id");
+    Deno.exit(1);
+  }
 
   return {
     token,
     vifuRoot,
     maxVideoBytes: maxMb * 1024 * 1024,
+    maxConcurrentRenders,
+    maxRenderQueue,
+    adminChatId,
     publicUrl,
     port,
   };

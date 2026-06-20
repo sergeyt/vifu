@@ -1,7 +1,7 @@
 # vifu Telegram bot on Fly.io
 # Docs: https://fly.io/docs/reference/configuration/
 #
-# Polling mode (default): no [http_service] — machine runs Dockerfile CMD 24/7.
+# Single-machine polling bot. Scale stays at 1 via deploy workflow + fly scale count 1.
 # Webhook: set secrets BOT_PUBLIC_URL + PORT=8787, then uncomment [http_service] below.
 
 app = "vifu"
@@ -13,14 +13,17 @@ primary_region = "iad"
 [env]
   VIFU_ROOT = "/app"
   MAX_VIDEO_MB = "20"
+  MAX_CONCURRENT_RENDERS = "1"
+  MAX_RENDER_QUEUE = "3"
 
 [deploy]
   strategy = "immediate"
 
+# One shared VM — enough for 1 render at a time (see render queue in bot).
 [[vm]]
   cpu_kind = "shared"
-  cpus = 2
-  memory = "2gb"
+  cpus = 1
+  memory = "1gb"
 
 # --- Webhook mode (optional) ---
 # fly secrets set BOT_PUBLIC_URL=https://vifu.fly.dev PORT=8787

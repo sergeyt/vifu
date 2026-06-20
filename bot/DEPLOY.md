@@ -67,6 +67,7 @@ Optional:
 
 ```bash
 fly secrets set MAX_VIDEO_MB=20 -a vifu
+fly secrets set ADMIN_CHAT_ID=123456789 -a vifu   # your Telegram user id — new-user alerts
 ```
 
 `VIFU_ROOT=/app` is set in `fly.toml` (do not point at your laptop path).
@@ -102,9 +103,10 @@ fly deploy               # manual deploy (CI auto-deploys on push to main)
 
 ### Cost & sizing
 
-- Default VM: **2 shared CPUs, 2 GB RAM** — enough for OpenCV/ffmpeg renders.
-- Always-on polling **does not sleep** (no `[http_service]` auto-stop). Expect roughly **~$10–15/mo** depending on region; check [Fly pricing](https://fly.io/docs/about/pricing/).
-- To cut cost, try `cpus = 1` and `memory = "1gb"` in `fly.toml` — may OOM on heavy clips.
+- **Single machine:** `fly.toml` uses 1 shared CPU / 1 GB RAM. CI runs `fly scale count 1` after each deploy.
+- To drop a second machine now: `fly scale count 1 -a vifu`
+- **Render queue:** 1 clip rendering at a time, up to 3 jobs total (`MAX_CONCURRENT_RENDERS`, `MAX_RENDER_QUEUE` in `fly.toml`). Extra requests get a busy message.
+- Always-on polling **does not sleep** (no `[http_service]`). Check [Fly pricing](https://fly.io/docs/about/pricing/) — 1×1 GB is much cheaper than 2×2 GB.
 
 ### Region
 
@@ -237,6 +239,7 @@ For Oracle + Docker polling, **skip webhook** — easier and works well.
 TELEGRAM_BOT_TOKEN=123456:ABC...
 VIFU_ROOT=/app          # inside Docker
 MAX_VIDEO_MB=20
+# ADMIN_CHAT_ID=123456789  # optional — DM you when someone new uses the bot
 # BOT_PUBLIC_URL=       # unset = polling
 ```
 
@@ -246,8 +249,8 @@ MAX_VIDEO_MB=20
 
 - **RAM:** allow ≥1 GB (OpenCV + render peaks).
 - **Disk:** temp videos in `bot/tmp/`; cleaned after each job.
-- **Concurrency:** one render per user session today; heavy parallel load needs a queue (T2+ in plan.md).
-- **Updates:** `git pull && docker compose up -d --build`
+- **Concurrency:** in-memory render queue — 1 active job, 3 total on Fly (configurable via env). One job per user; `/cancel` drops a queued job.
+- **Updates:** push to `main` (auto-deploy) or `fly deploy -a vifu`
 
 ---
 

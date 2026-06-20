@@ -61,6 +61,9 @@ jobs:
       - name: typecheck
         run: deno check --allow-import --lock=deno.lock src/main.ts
 
+      - name: test
+        run: deno test --allow-import tests/
+
   docker:
     runs-on: ubuntu-latest
     timeout-minutes: 20

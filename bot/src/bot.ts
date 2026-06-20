@@ -1,5 +1,7 @@
 import { Bot, type Context, InputFile } from "grammy";
+import { markUserSeen, notifyNewUser } from "@/admin.ts";
 import type { Config } from "@/config.ts";
+import { queueWaitMessage, RenderQueue } from "@/queue.ts";
 import { getSession, resetSession, setSession } from "@/session.ts";
 import { parsePlayerNames, renderVifu } from "@/vifu.ts";
 
@@ -23,13 +25,33 @@ const HELP = `1. Send a rally clip (≤ ${
    — or put <code>PLAYER1 vs PLAYER2</code> in the video caption
 3. Wait ~30s–2min depending on length
 
+Renders run one at a time on the free server — you may wait in a short queue.
+
 /cancel — discard and start over`;
 
 export function createBot(cfg: Config): Bot {
   const bot = new Bot(cfg.token);
+  const renderQueue = new RenderQueue(
+    cfg.maxConcurrentRenders,
+    cfg.maxRenderQueue,
+  );
 
   bot.catch((err) => {
     console.error("[bot] error:", err.error);
+  });
+
+  bot.use(async (ctx, next) => {
+    const user = ctx.from;
+    if (
+      user &&
+      cfg.adminChatId &&
+      user.id !== cfg.adminChatId &&
+      markUserSeen(user.id)
+    ) {
+      console.log(`[admin] new user ${user.id} @${user.username ?? "—"}`);
+      void notifyNewUser(ctx.api, cfg.adminChatId, user);
+    }
+    await next();
   });
 
   bot.command("start", async (ctx) => {
@@ -44,6 +66,7 @@ export function createBot(cfg: Config): Bot {
   bot.command("cancel", async (ctx) => {
     const userId = ctx.from!.id;
     const session = getSession(userId);
+    renderQueue.removeUser(userId);
     if (session.inputPath) {
       await Deno.remove(session.inputPath).catch(() => {});
     }
@@ -103,12 +126,7 @@ export function createBot(cfg: Config): Bot {
     }
 
     if (captionNames) {
-      setSession(userId, {
-        step: "await_player2",
-        inputPath,
-        player1: captionNames.player1,
-      });
-      await startRender(ctx, cfg, userId, {
+      await startRender(ctx, cfg, renderQueue, userId, {
         inputPath,
         player1: captionNames.player1,
         player2: captionNames.player2,
@@ -155,7 +173,7 @@ export function createBot(cfg: Config): Bot {
 
     const bothNames = parsePlayerNames(text);
     if (bothNames) {
-      await startRender(ctx, cfg, userId, {
+      await startRender(ctx, cfg, renderQueue, userId, {
         inputPath: session.inputPath,
         player1: bothNames.player1,
         player2: bothNames.player2,
@@ -194,7 +212,7 @@ export function createBot(cfg: Config): Bot {
         return;
       }
 
-      await startRender(ctx, cfg, userId, {
+      await startRender(ctx, cfg, renderQueue, userId, {
         inputPath: session.inputPath,
         player1: session.player1,
         player2,
@@ -208,60 +226,93 @@ export function createBot(cfg: Config): Bot {
 async function startRender(
   ctx: Context,
   cfg: Config,
+  renderQueue: RenderQueue,
   userId: number,
   opts: { inputPath: string; player1: string; player2: string },
 ): Promise<void> {
   if (!ctx.chat) return;
 
-  const session = getSession(userId);
-  const inputPath = opts.inputPath ?? session.inputPath;
-  if (!inputPath) {
-    await ctx.reply("Something went wrong. Send the video again, or /cancel.");
-    resetSession(userId);
+  if (renderQueue.hasUser(userId)) {
+    await ctx.reply(
+      "You already have a render queued. Please wait or /cancel.",
+    );
     return;
   }
 
-  setSession(userId, { step: "idle", inputPath });
-
-  const status = await ctx.reply(
-    `⚔️ Rendering <b>${escapeHtml(opts.player1)}</b> vs <b>${
-      escapeHtml(opts.player2)
-    }</b>…\nThis can take up to a couple of minutes.`,
-    { parse_mode: "HTML" },
-  );
-
-  const outputPath = inputPath.replace(/\.[^.]+$/, "") + "_fight.mp4";
-
-  try {
-    await renderVifu(cfg, {
-      inputPath,
-      outputPath,
-      player1: opts.player1,
-      player2: opts.player2,
-    });
-
-    await ctx.api.editMessageText(
-      ctx.chat.id,
-      status.message_id,
-      "✅ Done! Sending your fight clip…",
+  if (renderQueue.isFull) {
+    await ctx.reply(
+      `🚦 Server is busy (${cfg.maxRenderQueue} clips max). Try again in a few minutes.`,
     );
+    return;
+  }
 
-    await ctx.replyWithVideo(new InputFile(outputPath), {
-      caption: `${opts.player1} vs ${opts.player2} · vifu`,
+  const inputPath = opts.inputPath;
+  const outputPath = inputPath.replace(/\.[^.]+$/, "") + "_fight.mp4";
+  const { player1, player2 } = opts;
+
+  resetSession(userId);
+
+  let statusMessageId: number | undefined;
+  try {
+    const position = renderQueue.size >= cfg.maxConcurrentRenders
+      ? renderQueue.size - cfg.maxConcurrentRenders + 1
+      : 0;
+
+    const status = await ctx.reply(
+      `${queueWaitMessage(position)}\n\n⚔️ <b>${
+        escapeHtml(player1)
+      }</b> vs <b>${escapeHtml(player2)}</b>`,
+      { parse_mode: "HTML" },
+    );
+    statusMessageId = status.message_id;
+    const msgId = status.message_id;
+
+    await renderQueue.enqueue({
+      userId,
+      run: async () => {
+        await ctx.api.editMessageText(
+          ctx.chat!.id,
+          msgId,
+          `⚔️ Rendering <b>${escapeHtml(player1)}</b> vs <b>${
+            escapeHtml(player2)
+          }</b>…\nThis can take up to a couple of minutes.`,
+          { parse_mode: "HTML" },
+        );
+
+        await renderVifu(cfg, {
+          inputPath,
+          outputPath,
+          player1,
+          player2,
+        });
+
+        await ctx.api.editMessageText(
+          ctx.chat!.id,
+          msgId,
+          "✅ Done! Sending your fight clip…",
+        );
+
+        await ctx.replyWithVideo(new InputFile(outputPath), {
+          caption: `${player1} vs ${player2} · vifu`,
+        });
+      },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("[render]", message);
-    await ctx.api.editMessageText(
-      ctx.chat.id,
-      status.message_id,
-      `❌ Render failed:\n<pre>${escapeHtml(message.slice(0, 500))}</pre>`,
-      { parse_mode: "HTML" },
-    );
+    if (statusMessageId !== undefined) {
+      await ctx.api.editMessageText(
+        ctx.chat.id,
+        statusMessageId,
+        `❌ Render failed:\n<pre>${escapeHtml(message.slice(0, 500))}</pre>`,
+        { parse_mode: "HTML" },
+      ).catch(() => ctx.reply(`❌ Render failed:\n${message.slice(0, 500)}`));
+    } else {
+      await ctx.reply(`❌ Render failed:\n${message.slice(0, 500)}`);
+    }
   } finally {
     await Deno.remove(inputPath).catch(() => {});
     await Deno.remove(outputPath).catch(() => {});
-    resetSession(userId);
   }
 }
 
