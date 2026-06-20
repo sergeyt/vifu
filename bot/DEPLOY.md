@@ -141,10 +141,10 @@ Webhook optional: `fly secrets set BOT_PUBLIC_URL=https://vifu.fly.dev -a vifu`
 
 ### Cost & sizing
 
-- **Single machine:** 1 shared CPU / 2 GB RAM (renders need headroom). CI runs `fly scale count 1` after deploy.
-- To drop a second machine: `fly scale count 1 -a vifu`
-- **Render queue:** 1 clip at a time, up to 3 jobs total. Extra requests get a busy message.
-- `[http_service]` uses `auto_stop_machines = "off"` so the bot stays up 24/7.
+- **Single machine:** `fly scale count 1 -a vifu` — config keeps 1 CPU / 2 GB always on (`auto_stop_machines = "off"`, `min_machines_running = 1`).
+- **Billing:** not a free tier; expect ~$5–12/mo. Personal orgs often get invoices under ~$5 waived (not guaranteed). No reservation block needed for a hobby bot.
+- **Cheaper RAM:** change `memory = "1gb"` in `fly.toml` if bill is high (may OOM on renders).
+- **Render queue:** 1 clip at a time, up to 3 jobs total.
 
 ### Region
 

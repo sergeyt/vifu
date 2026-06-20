@@ -1,21 +1,29 @@
 # vifu Telegram bot on Fly.io
-# Docs: https://fly.io/docs/reference/configuration/
+# https://fly.io/docs/reference/configuration/
 #
-# Polling for Telegram + HTTP /health for Fly (keeps machine alive).
-# Webhook mode: set BOT_PUBLIC_URL secret — bot switches automatically.
+# Telegram: polling (getUpdates). Leave BOT_PUBLIC_URL unset.
+# Fly:      /health on :8787 keeps the machine alive (polling bots need 24/7 uptime).
+#
+# One machine only — CI runs `fly scale count 1` after deploy; or: fly scale count 1 -a vifu
+# Billing: always-on 1 CPU / 2 GB ≈ $5–12/mo (personal orgs often waive invoices under ~$5).
+# Cheaper: memory = "1gb" if renders OOM, bump back to "2gb".
 
 app = "vifu"
 primary_region = "iad"
+
+# Graceful shutdown — renders can run 1–2 min; avoid SIGKILL mid-job on deploy.
+kill_signal = "SIGTERM"
+kill_timeout = "120s"
 
 [build]
   dockerfile = "Dockerfile"
 
 [env]
+  PORT = "8787"
   VIFU_ROOT = "/app"
   MAX_VIDEO_MB = "20"
   MAX_CONCURRENT_RENDERS = "1"
   MAX_RENDER_QUEUE = "3"
-  PORT = "8787"
 
 [deploy]
   strategy = "immediate"
@@ -25,20 +33,24 @@ primary_region = "iad"
   cpus = 1
   memory = "2gb"
 
-# Required on Fly: health check keeps the machine running (polling still uses Telegram getUpdates).
 [http_service]
   internal_port = 8787
   force_https = true
+  processes = ["app"]
   auto_stop_machines = "off"
   auto_start_machines = true
   min_machines_running = 1
 
+  [http_service.concurrency]
+    type = "connections"
+    soft_limit = 20
+    hard_limit = 25
+
   [[http_service.checks]]
-    grace_period = "20s"
+    grace_period = "30s"
     interval = "15s"
     method = "GET"
     path = "/health"
     timeout = "5s"
 
-# Webhook mode (optional — replaces polling; also needs BOT_PUBLIC_URL secret):
-# fly secrets set BOT_PUBLIC_URL=https://vifu.fly.dev -a vifu
+# Webhook mode (optional): fly secrets set BOT_PUBLIC_URL=https://vifu.fly.dev -a vifu
