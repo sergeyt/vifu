@@ -12,11 +12,11 @@ ENV PATH="/root/.local/bin:${PATH}"
 WORKDIR /app
 
 # Python deps first (layer cache)
-COPY pyproject.toml uv.lock .python-version ./
+COPY pyproject.toml uv.lock .python-version README.md ./
 COPY configs/ configs/
 COPY assets/ assets/
 COPY src/ src/
-RUN uv sync --frozen --all-extras
+RUN uv sync --frozen --extra audio
 
 # Deno bot
 COPY bot/ bot/
@@ -27,9 +27,4 @@ WORKDIR /app/bot
 EXPOSE 8787
 
 # Polling by default (no HTTPS needed). Set BOT_PUBLIC_URL for webhook mode.
-CMD [
-  "deno", "run",
-  "--allow-env", "--allow-net", "--allow-read", "--allow-write",
-  "--allow-run", "--allow-sys", "--allow-import",
-  "src/main.ts"
-]
+CMD ["deno", "run", "--allow-env", "--allow-net", "--allow-read", "--allow-write", "--allow-run", "--allow-sys", "--allow-import", "src/main.ts"]

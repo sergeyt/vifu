@@ -11,7 +11,6 @@ bot/.env
 *.pt
 .DS_Store
 plan.md
-README.md
 run.sh
 .envrc
 .envrc.local.example
