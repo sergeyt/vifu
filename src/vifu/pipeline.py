@@ -12,7 +12,7 @@ from vifu.health import health_at_time
 from vifu.layout import PlayerLayout
 from vifu.overlay import draw_hud
 from vifu.styles import StyleConfig, load_style
-from vifu.video_io import VideoReader, VideoWriter, draw_frame_label
+from vifu.video_io import VideoReader, VideoWriter, assert_max_duration, draw_frame_label
 
 
 @dataclass
@@ -25,6 +25,7 @@ class ProcessOptions:
     style_name: str = "arcade_fight"
     start_sec: float | None = None
     duration_sec: float | None = None
+    max_duration_sec: float | None = None
     hit_times: list[float] | None = None
     auto_hit_sfx: bool = False
     no_hit_sfx: bool = False
@@ -87,6 +88,9 @@ def process_video(options: ProcessOptions, console: Console | None = None) -> No
     root = _project_root()
     style = load_style(options.style_name, root=root)
     start_sec = options.start_sec or 0.0
+
+    if options.max_duration_sec is not None:
+        assert_max_duration(options.input_path, options.max_duration_sec)
 
     rally_hits = _resolve_rally_hit_times(options, log)
 

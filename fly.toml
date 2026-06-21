@@ -23,6 +23,7 @@ kill_timeout = "120s"
   PORT = "8787"
   VIFU_ROOT = "/app"
   MAX_VIDEO_MB = "20"
+  MAX_VIDEO_SECONDS = "30"
   MAX_CONCURRENT_RENDERS = "1"
   MAX_RENDER_QUEUE = "3"
 

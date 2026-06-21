@@ -69,6 +69,30 @@ class VideoReader:
             yield frame_index, frame
 
 
+def probe_duration_sec(path: Path) -> float:
+    """Return video length in seconds."""
+    capture = cv2.VideoCapture(str(path))
+    if not capture.isOpened():
+        raise FileNotFoundError(f"Cannot open video: {path}")
+    try:
+        fps = float(capture.get(cv2.CAP_PROP_FPS) or 30.0)
+        frame_count = int(capture.get(cv2.CAP_PROP_FRAME_COUNT))
+        if fps <= 0 or frame_count <= 0:
+            return 0.0
+        return frame_count / fps
+    finally:
+        capture.release()
+
+
+def assert_max_duration(path: Path, max_sec: float) -> None:
+    duration = probe_duration_sec(path)
+    if duration > max_sec + 0.05:
+        raise ValueError(
+            f"Video is {duration:.1f}s — max allowed is {max_sec:.0f}s. "
+            "Send a shorter clip."
+        )
+
+
 class VideoWriter:
     def __init__(self, path: Path, *, fps: float, width: int, height: int) -> None:
         self.path = path

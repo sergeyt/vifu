@@ -5,11 +5,18 @@ import { queueWaitMessage, RenderQueue } from "@/queue.ts";
 import { captureException } from "@/sentry.ts";
 import { getSession, resetSession, setSession } from "@/session.ts";
 import { parsePlayerNames, renderVifu } from "@/vifu.ts";
+import {
+  formatDurationLimit,
+  probeVideoDurationSec,
+  telegramVideoDurationSec,
+} from "@/video.ts";
 
 const WELCOME = `🎬 <b>vifu</b> — video fun
 
 <b>How it works</b>
-1️⃣ Send a rally clip (video)
+1️⃣ Send a rally clip (video, **≤ ${
+  Deno.env.get("MAX_VIDEO_SECONDS") ?? "30"
+}s**)
 2️⃣ I'll ask for Player 1's name
 3️⃣ Then Player 2's name
 4️⃣ You get the fight edit ⚔️
@@ -21,7 +28,7 @@ Tip: add a caption like <code>ALEX vs SERGEI</code> on the video to skip the nam
 
 const HELP = `1. Send a rally clip (≤ ${
   Deno.env.get("MAX_VIDEO_MB") ?? "20"
-} MB)
+} MB, ≤ ${Deno.env.get("MAX_VIDEO_SECONDS") ?? "30"} seconds)
 2. Answer when I ask for each player's name
    — or put <code>PLAYER1 vs PLAYER2</code> in the video caption
 3. Wait ~30s–2min depending on length
@@ -218,6 +225,19 @@ async function handleVideoUpload(
     return;
   }
 
+  const telegramDuration = telegramVideoDurationSec(ctx);
+  if (
+    telegramDuration !== undefined &&
+    telegramDuration > cfg.maxVideoSeconds
+  ) {
+    await ctx.reply(
+      `⏱️ Clip is ${Math.round(telegramDuration)}s — ${
+        formatDurationLimit(cfg.maxVideoSeconds)
+      }`,
+    );
+    return;
+  }
+
   const captionNames = ctx.message!.caption
     ? parsePlayerNames(ctx.message!.caption)
     : null;
@@ -238,6 +258,26 @@ async function handleVideoUpload(
     resetSession(userId);
     const message = error instanceof Error ? error.message : String(error);
     await ctx.reply(`❌ Couldn't download the video:\n${message}`);
+    return;
+  }
+
+  try {
+    const probed = await probeVideoDurationSec(inputPath);
+    if (probed > cfg.maxVideoSeconds) {
+      await Deno.remove(inputPath).catch(() => {});
+      resetSession(userId);
+      await ctx.reply(
+        `⏱️ Clip is ${Math.round(probed)}s — ${
+          formatDurationLimit(cfg.maxVideoSeconds)
+        }`,
+      );
+      return;
+    }
+  } catch (error) {
+    await Deno.remove(inputPath).catch(() => {});
+    resetSession(userId);
+    const message = error instanceof Error ? error.message : String(error);
+    await ctx.reply(`❌ Couldn't read video:\n${message}`);
     return;
   }
 

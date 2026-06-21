@@ -2,6 +2,7 @@ export type Config = {
   token: string;
   vifuRoot: string;
   maxVideoBytes: number;
+  maxVideoSeconds: number;
   maxConcurrentRenders: number;
   maxRenderQueue: number;
   adminChatId?: number;
@@ -19,6 +20,10 @@ export function loadConfig(): Config {
   const vifuRoot = Deno.env.get("VIFU_ROOT")?.trim() ||
     new URL("../..", import.meta.url).pathname;
   const maxMb = Number(Deno.env.get("MAX_VIDEO_MB") ?? "20");
+  const maxVideoSeconds = Math.max(
+    1,
+    Number(Deno.env.get("MAX_VIDEO_SECONDS") ?? "30"),
+  );
   const port = Number(Deno.env.get("PORT") ?? "8787");
   const publicUrl = Deno.env.get("BOT_PUBLIC_URL")?.trim() || undefined;
   const maxConcurrentRenders = Math.max(
@@ -40,6 +45,7 @@ export function loadConfig(): Config {
     token,
     vifuRoot,
     maxVideoBytes: maxMb * 1024 * 1024,
+    maxVideoSeconds,
     maxConcurrentRenders,
     maxRenderQueue,
     adminChatId,

@@ -74,6 +74,7 @@ Optional:
 
 ```bash
 fly secrets set MAX_VIDEO_MB=20 -a vifu
+fly secrets set MAX_VIDEO_SECONDS=30 -a vifu
 fly secrets set ADMIN_CHAT_ID=123456789 -a vifu   # your Telegram user id — new-user alerts
 ```
 
@@ -292,8 +293,10 @@ MAX_VIDEO_MB=20
 
 ## Limits & ops
 
-- **RAM:** allow ≥1 GB (OpenCV + render peaks).
-- **Disk:** temp videos in `bot/tmp/`; cleaned after each job.
+- **Duration:** max **30 seconds** by default (`MAX_VIDEO_SECONDS`). Checked in the bot before/after download and again in `vifu process`.
+- **File size:** `MAX_VIDEO_MB` (default 20).
+- **RAM (30s clips):** bot idle ~100 MB; one render peaks ~**800 MB–1.5 GB** at 1080p, ~**512 MB–1 GB** at 720p. **1 GB VPS minimum**, **2 GB recommended** (your Fly/Hetzner config). Queue keeps one render at a time.
+- **Disk:** temp files in `bot/tmp/`; cleaned after each job.
 - **Concurrency:** in-memory render queue — 1 active job, 3 total on Fly (configurable via env). One job per user; `/cancel` drops a queued job.
 - **Updates:** push to `main` (auto-deploy) or `fly deploy -a vifu`
 

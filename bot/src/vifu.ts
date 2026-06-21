@@ -27,6 +27,8 @@ export async function renderVifu(
     opts.player2,
     "--style",
     "arcade_fight",
+    "--max-duration",
+    String(cfg.maxVideoSeconds),
   ];
 
   const cmd = new Deno.Command("uv", {

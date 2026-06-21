@@ -64,6 +64,10 @@ def process(
         Optional[float],
         typer.Option("--duration", help="Clip duration in seconds."),
     ] = None,
+    max_duration: Annotated[
+        Optional[float],
+        typer.Option("--max-duration", help="Reject clips longer than this (seconds)."),
+    ] = None,
     hit_times: Annotated[
         Optional[str],
         typer.Option("--hit-times", help="Comma-separated hit timestamps in seconds."),
@@ -118,6 +122,7 @@ def process(
         style_name=style,
         start_sec=start,
         duration_sec=duration,
+        max_duration_sec=max_duration,
         hit_times=parsed_hits,
         auto_hit_sfx=auto_hit_sfx,
         no_hit_sfx=no_hit_sfx,
