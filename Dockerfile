@@ -18,11 +18,12 @@ COPY assets/ assets/
 COPY src/ src/
 RUN uv sync --frozen --extra audio
 
-# Deno bot
+# Deno bot — cache deps at build time (avoid 3min grammY download on every start)
 COPY bot/ bot/
+WORKDIR /app/bot
+RUN deno cache --allow-import --lock=deno.lock src/main.ts
 
 ENV VIFU_ROOT=/app
-WORKDIR /app/bot
 
 EXPOSE 8787
 

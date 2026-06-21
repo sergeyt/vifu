@@ -33,6 +33,8 @@ Video rendering is **CPU-heavy** and runs **subprocesses** — use a **VPS or Do
 
 Repo includes [`fly.toml`](../fly.toml) at the project root. **Polling by default** — no public URL or TLS setup.
 
+> **Trial account:** Fly stops machines after **5 minutes** without a credit card on file (`Trial machine stopping… add a credit card`). The bot will look fine in logs, then go silent. Add a card at [fly.io/trial](https://fly.io/trial) (small bills often waived for personal orgs), or use **Oracle Always Free** (Option A) for $0 24/7.
+
 ### 1. Install CLI & log in
 
 ```bash
@@ -110,9 +112,13 @@ fly logs -a vifu --no-tail
 ```
 
 Look for `[bot]`, `[render]`, `[sentry]`, or crash/OOM lines. Common issues:
-- Machine stopped → `fly machine list` then `fly scale count 1 -a vifu`
-- Missing secret → `TELEGRAM_BOT_TOKEN` not set
-- OOM on render → bump memory in `fly.toml` or shorten clips
+
+| Log line | Cause | Fix |
+|----------|--------|-----|
+| `Trial machine stopping… add a credit card` | Fly trial 5‑min limit | Add card at [fly.io/trial](https://fly.io/trial), then `fly scale count 1 -a vifu` |
+| App **Suspended**, no new logs | Machine stopped | `fly machine list -a vifu` → `fly machine start …` or redeploy |
+| No `[bot] polling` after start | Crash on boot | Check for missing `TELEGRAM_BOT_TOKEN` |
+| OOM / killed | Render too heavy | `memory = "2gb"` in `fly.toml` |
 
 Dashboard: [fly.io/apps/vifu/monitoring](https://fly.io/apps/vifu/monitoring)
 

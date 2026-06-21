@@ -6,6 +6,7 @@
 #
 # One machine only — CI runs `fly scale count 1` after deploy; or: fly scale count 1 -a vifu
 # Billing: always-on 1 CPU / 2 GB ≈ $5–12/mo (personal orgs often waive invoices under ~$5).
+# Trial without a credit card: machines stop after 5 minutes — add a card at fly.io/trial.
 # Cheaper: memory = "1gb" if renders OOM, bump back to "2gb".
 
 app = "vifu"
