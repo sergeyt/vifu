@@ -28,4 +28,4 @@ ENV VIFU_ROOT=/app
 EXPOSE 8787
 
 # Polling by default (no HTTPS needed). Set BOT_PUBLIC_URL for webhook mode.
-CMD ["deno", "run", "--allow-env", "--allow-net", "--allow-read", "--allow-write", "--allow-run", "--allow-sys", "--allow-import", "src/main.ts"]
+CMD ["deno", "run", "--allow-env", "--allow-net", "--allow-read", "--allow-write", "--allow-run", "--allow-sys", "--allow-import", "--allow-ffi", "src/main.ts"]

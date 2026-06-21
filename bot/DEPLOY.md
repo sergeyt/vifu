@@ -151,11 +151,17 @@ Webhook optional: `fly secrets set BOT_PUBLIC_URL=https://vifu.fly.dev -a vifu`
 - **Single machine:** `fly scale count 1 -a vifu` — config keeps 1 CPU / 2 GB always on (`auto_stop_machines = "off"`, `min_machines_running = 1`).
 - **Billing:** not a free tier; expect ~$5–12/mo. Personal orgs often get invoices under ~$5 waived (not guaranteed). No reservation block needed for a hobby bot.
 - **Cheaper RAM:** change `memory = "1gb"` in `fly.toml` if bill is high (may OOM on renders).
-- **Render queue:** 1 clip at a time, up to 3 jobs total.
+- **Render queue:** SQLite-backed — 1 clip at a time, up to 3 jobs total. Pending jobs survive restart/re-deploy (needs Fly volume — see below).
 
-### Region
+### Persistent queue volume (first deploy)
 
-Change `primary_region` in `fly.toml` (e.g. `iad`, `sin`, `fra`) before first deploy. Pick one close to you.
+The queue DB and uploaded videos live under `DATA_DIR` (default `/data` on Fly). Create the volume **once** before deploying with `[mounts]`:
+
+```bash
+fly volumes create vifu_data --region iad --size 1 -a vifu
+```
+
+If the app already exists without a volume, add the volume then redeploy. Without it, queued jobs are lost on every deploy.
 
 ---
 
@@ -296,8 +302,8 @@ MAX_VIDEO_MB=20
 - **Duration:** max **30 seconds** by default (`MAX_VIDEO_SECONDS`). Checked in the bot before/after download and again in `vifu process`.
 - **File size:** `MAX_VIDEO_MB` (default 20).
 - **RAM (30s clips):** bot idle ~100 MB; one render peaks ~**800 MB–1.5 GB** at 1080p, ~**512 MB–1 GB** at 720p. **1 GB VPS minimum**, **2 GB recommended** (your Fly/Hetzner config). Queue keeps one render at a time.
-- **Disk:** temp files in `bot/tmp/`; cleaned after each job.
-- **Concurrency:** in-memory render queue — 1 active job, 3 total on Fly (configurable via env). One job per user; `/cancel` drops a queued job.
+- **Disk:** uploads + SQLite queue in `DATA_DIR` (default `bot/data/` locally, `/data` in Docker/Fly with volume). Temp outputs cleaned after each job.
+- **Concurrency:** SQLite-backed render queue — 1 active job, 3 total (configurable via env). One job per user; `/cancel` drops a queued job. Interrupted renders re-queue on startup; users get a “resuming…” message.
 - **Updates:** push to `main` (auto-deploy) or `fly deploy -a vifu`
 
 ---

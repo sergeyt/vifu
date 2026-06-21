@@ -1,6 +1,7 @@
 export type Config = {
   token: string;
   vifuRoot: string;
+  dataDir: string;
   maxVideoBytes: number;
   maxVideoSeconds: number;
   maxConcurrentRenders: number;
@@ -19,6 +20,8 @@ export function loadConfig(): Config {
 
   const vifuRoot = Deno.env.get("VIFU_ROOT")?.trim() ||
     new URL("../..", import.meta.url).pathname;
+  const dataDir = Deno.env.get("DATA_DIR")?.trim() ||
+    new URL("../data/", import.meta.url).pathname;
   const maxMb = Number(Deno.env.get("MAX_VIDEO_MB") ?? "20");
   const maxVideoSeconds = Math.max(
     1,
@@ -44,6 +47,7 @@ export function loadConfig(): Config {
   return {
     token,
     vifuRoot,
+    dataDir,
     maxVideoBytes: maxMb * 1024 * 1024,
     maxVideoSeconds,
     maxConcurrentRenders,

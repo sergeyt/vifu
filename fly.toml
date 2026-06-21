@@ -26,6 +26,7 @@ kill_timeout = "120s"
   MAX_VIDEO_SECONDS = "30"
   MAX_CONCURRENT_RENDERS = "1"
   MAX_RENDER_QUEUE = "3"
+  DATA_DIR = "/data"
 
 [deploy]
   strategy = "immediate"
@@ -56,3 +57,8 @@ kill_timeout = "120s"
     timeout = "5s"
 
 # Webhook mode (optional): fly secrets set BOT_PUBLIC_URL=https://vifu.fly.dev -a vifu
+
+[mounts]
+  source = "vifu_data"
+  destination = "/data"
+  initial_size = "1gb"

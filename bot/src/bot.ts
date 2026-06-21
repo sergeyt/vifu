@@ -1,10 +1,10 @@
-import { Bot, type Context, InputFile } from "grammy";
+import { Bot, type Context } from "grammy";
 import { markUserSeen, notifyNewUser } from "@/admin.ts";
 import type { Config } from "@/config.ts";
 import { queueWaitMessage, RenderQueue } from "@/queue.ts";
 import { captureException } from "@/sentry.ts";
 import { getSession, resetSession, setSession } from "@/session.ts";
-import { parsePlayerNames, renderVifu } from "@/vifu.ts";
+import { parsePlayerNames } from "@/vifu.ts";
 import {
   formatDurationLimit,
   probeVideoDurationSec,
@@ -37,12 +37,14 @@ Renders run one at a time on the free server — you may wait in a short queue.
 
 /cancel — discard and start over`;
 
-export function createBot(cfg: Config): Bot {
+export type BotHandle = {
+  bot: Bot;
+  recoverQueue: () => Promise<void>;
+};
+
+export function createBot(cfg: Config): BotHandle {
   const bot = new Bot(cfg.token);
-  const renderQueue = new RenderQueue(
-    cfg.maxConcurrentRenders,
-    cfg.maxRenderQueue,
-  );
+  const renderQueue = RenderQueue.open(cfg, bot.api);
 
   bot.catch(async (err) => {
     console.error("[bot] error:", err.error);
@@ -87,7 +89,7 @@ export function createBot(cfg: Config): Bot {
   bot.command("cancel", async (ctx) => {
     const userId = ctx.from!.id;
     const session = getSession(userId);
-    renderQueue.removeUser(userId);
+    renderQueue.cancelUser(userId);
     if (session.inputPath) {
       await Deno.remove(session.inputPath).catch(() => {});
     }
@@ -190,7 +192,10 @@ export function createBot(cfg: Config): Bot {
     }
   });
 
-  return bot;
+  return {
+    bot,
+    recoverQueue: () => renderQueue.recover(),
+  };
 }
 
 async function handleVideoUpload(
@@ -249,7 +254,7 @@ async function handleVideoUpload(
   let inputPath: string;
   try {
     inputPath = await downloadTelegramFile(
-      cfg.token,
+      cfg,
       file.file_path!,
       userId,
       ext,
@@ -326,7 +331,6 @@ async function startRender(
 
   resetSession(userId);
 
-  let statusMessageId: number | undefined;
   try {
     const position = renderQueue.size >= cfg.maxConcurrentRenders
       ? renderQueue.size - cfg.maxConcurrentRenders + 1
@@ -338,41 +342,31 @@ async function startRender(
       }</b> vs <b>${escapeHtml(player2)}</b>`,
       { parse_mode: "HTML" },
     );
-    statusMessageId = status.message_id;
-    const msgId = status.message_id;
 
     await renderQueue.enqueue({
       userId,
-      run: async () => {
-        await ctx.api.editMessageText(
-          ctx.chat!.id,
-          msgId,
-          `⚔️ Rendering <b>${escapeHtml(player1)}</b> vs <b>${
-            escapeHtml(player2)
-          }</b>…\nThis can take up to a couple of minutes.`,
-          { parse_mode: "HTML" },
-        );
-
-        await renderVifu(cfg, {
-          inputPath,
-          outputPath,
-          player1,
-          player2,
-        });
-
-        await ctx.api.editMessageText(
-          ctx.chat!.id,
-          msgId,
-          "✅ Done! Sending your fight clip…",
-        );
-
-        await ctx.replyWithVideo(new InputFile(outputPath), {
-          caption: `${player1} vs ${player2} · vifu`,
-        });
-      },
+      chatId: ctx.chat.id,
+      statusMessageId: status.message_id,
+      inputPath,
+      outputPath,
+      player1,
+      player2,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    if (message === "ALREADY_QUEUED") {
+      await ctx.reply(
+        "You already have a render queued. Please wait or /cancel.",
+      );
+      return;
+    }
+    if (message === "QUEUE_FULL") {
+      await ctx.reply(
+        `🚦 Server is busy (${cfg.maxRenderQueue} clips max). Try again in a few minutes.`,
+      );
+      await Deno.remove(inputPath).catch(() => {});
+      return;
+    }
     console.error("[render]", message);
     captureException(error instanceof Error ? error : new Error(message), {
       handler: "render",
@@ -380,17 +374,7 @@ async function startRender(
       player1: opts.player1,
       player2: opts.player2,
     });
-    if (statusMessageId !== undefined) {
-      await ctx.api.editMessageText(
-        ctx.chat.id,
-        statusMessageId,
-        `❌ Render failed:\n<pre>${escapeHtml(message.slice(0, 500))}</pre>`,
-        { parse_mode: "HTML" },
-      ).catch(() => ctx.reply(`❌ Render failed:\n${message.slice(0, 500)}`));
-    } else {
-      await ctx.reply(`❌ Render failed:\n${message.slice(0, 500)}`);
-    }
-  } finally {
+    await ctx.reply(`❌ Render failed:\n${message.slice(0, 500)}`);
     await Deno.remove(inputPath).catch(() => {});
     await Deno.remove(outputPath).catch(() => {});
   }
@@ -404,15 +388,15 @@ function singleName(text: string): string | null {
 }
 
 async function downloadTelegramFile(
-  token: string,
+  cfg: Config,
   filePath: string,
   userId: number,
   ext: string,
 ): Promise<string> {
-  const dir = new URL("../tmp/", import.meta.url).pathname;
+  const dir = `${cfg.dataDir}/uploads`;
   await Deno.mkdir(dir, { recursive: true });
-  const localPath = `${dir}${userId}_${Date.now()}.${ext}`;
-  const url = `https://api.telegram.org/file/bot${token}/${filePath}`;
+  const localPath = `${dir}/${userId}_${Date.now()}.${ext}`;
+  const url = `https://api.telegram.org/file/bot${cfg.token}/${filePath}`;
   const res = await fetch(url);
   if (!res.ok) {
     throw new Error(`Telegram download failed: ${res.status}`);

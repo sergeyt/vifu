@@ -5,10 +5,10 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT"
 
-DEFAULT_INPUT="samples/10s.mp4"
+DEFAULT_INPUT="samples/final.mp4"
 DEFAULT_OUTPUT="outputs/fight.mp4"
-DEFAULT_PLAYER1="TODYSH"
-DEFAULT_PLAYER2="MAX-AZ"
+DEFAULT_PLAYER1="SHKURIN"
+DEFAULT_PLAYER2="TODYSHEV"
 DEFAULT_STYLE="arcade_fight"
 
 _resolve_input() {

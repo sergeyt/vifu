@@ -11,11 +11,12 @@ addEventListener("unhandledrejection", (event) => {
 });
 
 const cfg = loadConfig();
-const bot = createBot(cfg);
+const { bot, recoverQueue } = createBot(cfg);
 
 try {
   await bot.init();
   console.log(`[bot] @${bot.botInfo.username} ready`);
+  await recoverQueue();
 
   if (!useWebhook(cfg)) {
     await bot.api.deleteWebhook({ drop_pending_updates: false });
