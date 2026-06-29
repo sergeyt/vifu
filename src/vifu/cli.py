@@ -8,6 +8,7 @@ from rich.console import Console
 
 from vifu.layout import PlayerLayout
 from vifu.pipeline import ProcessOptions, process_video
+from vifu.video_io import clip_output_path, cut_video, validate_trim_range
 
 app = typer.Typer(
     name="vifu",
@@ -64,6 +65,13 @@ def process(
         Optional[float],
         typer.Option("--duration", help="Clip duration in seconds."),
     ] = None,
+    save_clip: Annotated[
+        bool,
+        typer.Option(
+            "--save-clip",
+            help="Cut input first with --start/--duration and save as {stem}-clip{ext}.",
+        ),
+    ] = False,
     max_duration: Annotated[
         Optional[float],
         typer.Option("--max-duration", help="Reject clips longer than this (seconds)."),
@@ -98,6 +106,40 @@ def process(
     """Process a video and add fight-style overlays."""
     input_path = _resolve_path(input)
     output_path = _resolve_path(output)
+    start_sec = start
+    duration_sec = duration
+
+    if start_sec is not None or duration_sec is not None:
+        try:
+            validate_trim_range(
+                input_path,
+                start_sec=start_sec or 0.0,
+                duration_sec=duration_sec,
+            )
+        except ValueError as exc:
+            console.print(f"[red]{exc}[/red]")
+            raise typer.Exit(code=1) from exc
+
+    if save_clip:
+        if start_sec is None and duration_sec is None:
+            console.print("[red]--save-clip requires --start and/or --duration.[/red]")
+            raise typer.Exit(code=1)
+
+        clip_path = clip_output_path(input_path)
+        if clip_path == output_path:
+            console.print("[red]Clip path would overwrite output path.[/red]")
+            raise typer.Exit(code=1)
+
+        console.print(f"[bold]Cutting clip:[/bold] {clip_path}")
+        cut_video(
+            input_path,
+            clip_path,
+            start_sec=start_sec or 0.0,
+            duration_sec=duration_sec,
+        )
+        input_path = clip_path
+        start_sec = None
+        duration_sec = None
 
     if output_path == input_path:
         console.print("[red]Output path must differ from input path.[/red]")
@@ -120,8 +162,8 @@ def process(
         player2=player2,
         layout=layout,
         style_name=style,
-        start_sec=start,
-        duration_sec=duration,
+        start_sec=start_sec,
+        duration_sec=duration_sec,
         max_duration_sec=max_duration,
         hit_times=parsed_hits,
         auto_hit_sfx=auto_hit_sfx,
